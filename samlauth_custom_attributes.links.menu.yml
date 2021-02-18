@@ -1,0 +1,5 @@
+samlauth_custom_attributes.user_settings_form:
+  title: 'User'
+  parent: samlauth.samlauth_configure_form
+  description: 'Configure SAML User'
+  route_name: samlauth_custom_attributes.user_settings_form

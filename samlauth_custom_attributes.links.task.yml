@@ -1,0 +1,20 @@
+samlauth_custom_attributes.configuration:
+  title: 'Configuration'
+  route_name: samlauth.samlauth_configure_form
+  base_route: samlauth.samlauth_configure_form
+  weight: 0
+samlauth_custom_attributes.user:
+  title: 'User'
+  route_name: samlauth_custom_attributes.user_settings_form
+  base_route: samlauth.samlauth_configure_form
+  weight: 1
+samlauth_custom_attributes.user.settings:
+  title: 'Settings'
+  route_name: samlauth_custom_attributes.user_settings_form
+  parent_id: samlauth_custom_attributes.user
+  weight: 0
+samlauth_custom_attributes.user.mapping:
+  title: 'Mapping'
+  route_name: samlauth_custom_attributes.user_mapping_form
+  parent_id: samlauth_custom_attributes.user
+  weight: 1

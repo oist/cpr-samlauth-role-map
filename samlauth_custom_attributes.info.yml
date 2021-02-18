@@ -1,0 +1,12 @@
+name: "SAML Authentication Custom Attributes"
+type: module
+description: 'A plugin module depends on SAML Authentication.'
+# core: 8.x
+package: "User authentication"
+configure: samlauth_custom_attributes.user_settings_form
+dependencies:
+  - 'samlauth'
+
+version: '8.x-2.0-alpha1'
+core: '8.x'
+project: 'samlauth'

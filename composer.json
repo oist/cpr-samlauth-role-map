@@ -1,0 +1,12 @@
+{
+    "name": "oist/samlauth_custom_attributes",
+    "description": "description",
+    "minimum-stability": "stable",
+    "license": "",
+    "require": {},
+    "extra": {
+        "branch-alias": {
+            "dev-master": "3.0.x-dev"
+        }
+    }
+}
