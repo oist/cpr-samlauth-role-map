@@ -1,5 +1,6 @@
 {
     "name": "oist/samlauth_custom_attributes",
+    "type": "drupal-custom-module",
     "description": "description",
     "minimum-stability": "stable",
     "license": "",
