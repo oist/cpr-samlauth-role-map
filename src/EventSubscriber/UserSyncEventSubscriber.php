@@ -19,8 +19,8 @@ use Psr\Log\LoggerInterface;
  * account with the same name is found, or continue with a non-renamed account?
  * etc.)
  */
-class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber
-{
+class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
+
   /**
    * A configuration object containing samlauth mapping settings.
    *
@@ -29,32 +29,31 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber
   protected $userMapping;
 
   /**
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $userSettings;
+
+  protected $account;
+
+  /**
    * UserSyncEventSubscriber constructor.
+   *
    * @param ConfigFactoryInterface $config_factory
    * @param EntityTypeManagerInterface $entity_type_manager
    * @param TypedDataManagerInterface $typed_data_manager
    * @param EmailValidator $email_validator
    * @param LoggerInterface $logger
    */
-  public function __construct(ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager, TypedDataManagerInterface $typed_data_manager, EmailValidator $email_validator, LoggerInterface $logger)
-  {
+  public function __construct(ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager, TypedDataManagerInterface $typed_data_manager, EmailValidator $email_validator, LoggerInterface $logger) {
     parent::__construct($config_factory, $entity_type_manager, $typed_data_manager, $email_validator, $logger);
 
+    $this->userSettings = $config_factory->get('samlauth.user.settings');
     $this->userMapping = $config_factory->get('samlauth.user.mapping');
   }
 
   public function onUserSync(SamlauthUserSyncEvent $event) {
-    $account = $event->getAccount();
-
-    // Assign roles.
-    if ($assigned_role = $this->userMapping->get('user_roles.assigned_role')) {
-      foreach (array_keys(array_filter($assigned_role)) as $role_id) {
-        if (!$account->hasRole($role_id)) {
-          $account->addRole($role_id);
-          $event->markAccountChanged();
-        }
-      }
-    }
+    $this->account = $event->getAccount();
+    $originRoles = $this->account->getRoles(TRUE);
 
     // Resolve additional field/property mappings.
     if ($user_mappings = $this->userMapping->get('user_mapping')) {
@@ -62,11 +61,36 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber
       foreach ($user_mappings as $field_name => $mapping) {
         if (!empty($mapping['attribute'])) {
           if ($value = $attributes[$mapping['attribute']]) {
-            $account->set($field_name, $value[0]);
+            $this->account->set($field_name, $value[0]);
             $event->markAccountChanged();
           }
         }
       }
     }
+
+    $this->keepRoles($originRoles, $event);
+
+    $this->defaultAssignRoles($event);
   }
+
+  protected function keepRoles($originRoles, SamlauthUserSyncEvent $event) {
+    if ($kept_roles = $this->userSettings->get('user_roles.keep')) {
+      foreach ($originRoles as $role_id) {
+        if (in_array($role_id, array_keys(array_filter($kept_roles)))) {
+          $this->account->addRole($role_id);
+          $event->markAccountChanged();
+        }
+      }
+    }
+  }
+
+  protected function defaultAssignRoles(SamlauthUserSyncEvent $event) {
+    if ($assigned_role = $this->userSettings->get('user_roles.default_assign')) {
+      foreach (array_keys(array_filter($assigned_role)) as $role_id) {
+        $this->account->addRole($role_id);
+        $event->markAccountChanged();
+      }
+    }
+  }
+
 }
