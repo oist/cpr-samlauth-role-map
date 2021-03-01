@@ -33,6 +33,9 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
    */
   protected $userSettings;
 
+  /**
+   * @var \Drupal\user\UserInterface
+   */
   protected $account;
 
   /**
@@ -59,10 +62,16 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
     if ($user_mappings = $this->userMapping->get('user_mapping')) {
       $attributes = $event->getAttributes();
       foreach ($user_mappings as $field_name => $mapping) {
+        $method = "set" . ucfirst($field_name) . 'Attribute';
         if (!empty($mapping['attribute'])) {
           if ($value = $attributes[$mapping['attribute']]) {
-            $this->account->set($field_name, $value[0]);
-            $event->markAccountChanged();
+            if (method_exists($this, $method)) {
+              $this->$method($event, $value[0]);
+            }
+            else {
+              $this->account->set($field_name, $value[0]);
+              $event->markAccountChanged();
+            }
           }
         }
       }
@@ -71,6 +80,26 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
     $this->keepRoles($originRoles, $event);
 
     $this->defaultAssignRoles($event);
+  }
+
+  protected function setRolesAttribute(SamlauthUserSyncEvent $event, $value): void {
+    if (!$mappers = $this->userMapping->get('group.mapper')) {
+      return;
+    }
+
+    $mapper = array_filter($mappers, function ($mapper) use ($value) {
+      return $mapper['name'] == $value;
+    });
+
+    $item = array_pop($mapper);
+
+    if ($item) {
+      $this->account->set('roles', array_keys(array_filter($item['roles'])));
+    } else {
+      $this->account->set('roles', '');
+    }
+
+    $event->markAccountChanged();
   }
 
   protected function keepRoles($originRoles, SamlauthUserSyncEvent $event) {
