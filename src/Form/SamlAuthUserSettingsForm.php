@@ -2,13 +2,30 @@
 
 namespace Drupal\samlauth_custom_attributes\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Contains the samlauth configuration form.
  */
 class SamlAuthUserSettingsForm extends ConfigFormBase {
+
+  /**
+   * Entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+
+  public function __construct(ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager) {
+    parent::__construct($config_factory);
+    $this->entityTypeManager = $entity_type_manager;
+  }
 
   /**
    * {@inheritdoc}
@@ -24,6 +41,13 @@ class SamlAuthUserSettingsForm extends ConfigFormBase {
     return [
       'samlauth.user.settings'
     ];
+  }
+
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('entity_type.manager'),
+    );
   }
 
   /**
@@ -44,6 +68,29 @@ class SamlAuthUserSettingsForm extends ConfigFormBase {
         by the IDP. <br/> <strong>Note:</strong> Only one IDP attribute
         per line.'),
       '#default_value' => $config->get('user_mapping.attributes'),
+    ];
+
+    $form['user_roles'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('User Role'),
+      '#tree' => TRUE,
+    ];
+
+    $form['user_roles']['default_assign'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Assigned Role'),
+      '#description' => $this->t('description'),
+      '#options' => $this->getUserRoleOptions(),
+      '#default_value' => $config->get('user_roles.default_assign'),
+    ];
+
+    $form['user_roles']['keep'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Which ROLES should be kept after logging in with SAML?'),
+      '#description' => $this->t('Roles that should be remain assigned to
+        the user that login with SAMLAuth even if those roles are not in the SAML response.'),
+      '#options' => $this->getUserRoleOptions(),
+      '#default_value' => $config->get('user_roles.keep'),
     ];
 
     $form['account'] = [
@@ -135,6 +182,24 @@ class SamlAuthUserSettingsForm extends ConfigFormBase {
     }
 
     return $attribute_in_use;
+  }
+
+  protected function getUserRoleOptions() {
+    $allRoles = $this->entityTypeManager
+      ->getStorage('user_role')
+      ->loadMultiple();
+
+    $roles = array_filter($allRoles,
+      function ($role) {
+        return !in_array($role->id(), [
+          AccountInterface::ANONYMOUS_ROLE,
+          AccountInterface::AUTHENTICATED_ROLE,
+        ]);
+      });
+
+    return array_map(function ($role) {
+      return $role->label();
+    }, $roles);
   }
 
 }
