@@ -84,8 +84,9 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state)
-  {
+  public function buildForm(array $form, FormStateInterface $form_state) {
+    $config = $this->config('samlauth.user.mapping');
+
     $form['user_mapping'] = [
       '#type' => 'table',
       '#header' => [
@@ -95,8 +96,6 @@ class SamlAuthUserMappingForm extends ConfigFormBase
       ],
       '#empty' => $this->t('Currently there are no user mapping properties.'),
     ];
-    $config = $this->config('samlauth.user.mapping');
-    $attribute_options = $this->getAttributeOptions();
 
     foreach ($this->getUserEntityInputFields() as $field_name => $definition) {
       $form['user_mapping'][$field_name]['name'] = [
@@ -104,7 +103,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
       ];
       $form['user_mapping'][$field_name]['attribute'] = [
         '#type' => 'select',
-        '#options' => $attribute_options,
+        '#options' => $this->getAttributeOptions(),
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $config->get("user_mapping.$field_name.attribute"),
       ];
@@ -123,21 +122,90 @@ class SamlAuthUserMappingForm extends ConfigFormBase
         '#default_value' => $config->get("user_mapping.$field_name.settings.use_account_linking"),
       ];
     }
+
     $form['user_roles'] = [
-      '#type' => 'details',
+      '#type' => 'fieldset',
       '#title' => $this->t('User Role'),
-      '#open' => TRUE,
+      '#prefix' => '<div id="group-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    if (empty($form_state->get('mapper'))) {
+      $form_state->set('mapper', count($config->get('group.mapper')));
+    }
+
+    $mapperCount = $form_state->get('mapper');
+
+    $form['user_roles']['btn_groups'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => 'form-item'],
+    ];
+
+    $form['user_roles']['btn_groups']['add'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add'),
+      '#submit' => ['::addMap'],
+      '#ajax' => [
+        'callback' => '::handleMapperCallback',
+        'wrapper' => 'group-wrapper',
+      ],
+    ];
+
+    if ($mapperCount > 0) {
+      $form['user_roles']['btn_groups']['remove'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Remove'),
+        '#submit' => ['::removeMap'],
+        '#ajax' => [
+          'callback' => '::handleMapperCallback',
+          'wrapper' => 'group-wrapper',
+        ],
+      ];
+    }
+    $form['user_roles']['group'] = [
       '#tree' => TRUE,
     ];
-    $form['user_roles']['assigned_role'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Assigned Role'),
-      '#options' => $this->getUserRoleOptions(),
-      '#default_value' => $config->get('user_roles.assigned_role'),
-    ];
+
+    for ($key = 0; $key < $mapperCount; $key++) {
+      $form['user_roles']['group']['mapper'][$key] = [
+        '#type' => 'details',
+        '#title' => $this->t($config->get("group.mapper.$key.name") ?? 'New Mapping'),
+        '#description' => $this->t('description'),
+        '#open' => TRUE,
+      ];
+
+      $form['user_roles']['group']['mapper'][$key]['name'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('IDP Attribute Value'),
+        '#default_value' => $config->get("group.mapper.$key.name"),
+      ];
+
+      $form['user_roles']['group']['mapper'][$key]['roles'] = [
+        '#type' => 'checkboxes',
+        '#options' => $this->getUserRoleOptions(),
+        '#default_value' => $config->get("group.mapper.$key.roles"),
+      ];
+    }
 
     return parent::buildForm($form, $form_state);
   }
+
+  public function handleMapperCallback(array &$form, FormStateInterface $form_state) {
+    return $form['user_roles'];
+  }
+
+  public function addMap(array &$form, FormStateInterface $form_state) {
+    $mapper = $form_state->get('mapper');
+    $form_state->set('mapper', $mapper + 1);
+    $form_state->setRebuild();
+  }
+
+  public function removeMap(array &$form, FormStateInterface $form_state) {
+    $mapper = $form_state->get('mapper');
+    $form_state->set('mapper', $mapper - 1);
+    $form_state->setRebuild();
+  }
+
 
   /**
    * {@inheritdoc}
