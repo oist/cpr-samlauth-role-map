@@ -210,10 +210,17 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state)
-  {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $formSettings = $form_state->cleanValues()->getValues();
+
+    $formSettings['mapper']['group'] = array_values(
+      array_filter($formSettings['mapper']['group'], function ($group) {
+        return !empty($group['name']);
+      })
+    );
+
     $this->config('samlauth.user.mapping')
-      ->setData($form_state->cleanValues()->getValues())
+      ->setData($formSettings)
       ->save();
 
     parent::submitForm($form, $form_state);
