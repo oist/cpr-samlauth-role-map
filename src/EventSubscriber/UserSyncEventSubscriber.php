@@ -83,7 +83,7 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
   }
 
   protected function setRolesAttribute(SamlauthUserSyncEvent $event, $value): void {
-    if (!$mappers = $this->userMapping->get('group.mapper')) {
+    if (!$mappers = $this->userMapping->get('mapper.group')) {
       return;
     }
 

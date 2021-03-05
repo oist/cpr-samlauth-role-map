@@ -131,7 +131,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
     ];
 
     if (empty($form_state->get('mapper'))) {
-      $form_state->set('mapper', count($config->get('group.mapper')));
+      $form_state->set('mapper', count($config->get('mapper.group')));
     }
 
     $mapperCount = $form_state->get('mapper');
@@ -162,28 +162,28 @@ class SamlAuthUserMappingForm extends ConfigFormBase
         ],
       ];
     }
-    $form['user_roles']['group'] = [
+    $form['user_roles']['mapper'] = [
       '#tree' => TRUE,
     ];
 
     for ($key = 0; $key < $mapperCount; $key++) {
-      $form['user_roles']['group']['mapper'][$key] = [
+      $form['user_roles']['mapper']['group'][$key] = [
         '#type' => 'details',
-        '#title' => $this->t($config->get("group.mapper.$key.name") ?? 'New Mapping'),
+        '#title' => $this->t($config->get("mapper.group.$key.name") ?? 'New Mapping'),
         '#description' => $this->t('description'),
         '#open' => TRUE,
       ];
 
-      $form['user_roles']['group']['mapper'][$key]['name'] = [
+      $form['user_roles']['mapper']['group'][$key]['name'] = [
         '#type' => 'textfield',
         '#title' => $this->t('IDP Attribute Value'),
-        '#default_value' => $config->get("group.mapper.$key.name"),
+        '#default_value' => $config->get("mapper.group.$key.name"),
       ];
 
-      $form['user_roles']['group']['mapper'][$key]['roles'] = [
+      $form['user_roles']['mapper']['group'][$key]['roles'] = [
         '#type' => 'checkboxes',
         '#options' => $this->getUserRoleOptions(),
-        '#default_value' => $config->get("group.mapper.$key.roles"),
+        '#default_value' => $config->get("mapper.group.$key.roles"),
       ];
     }
 
