@@ -76,12 +76,17 @@ class SamlAuthUserSettingsForm extends ConfigFormBase {
       '#tree' => TRUE,
     ];
 
-    $form['user_roles']['default_assign'] = [
+    $form['user_roles']['default'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Default roles'),
+      '#description' => $this->t('Roles that will be assigned to user that login with SAMLAuth by default.'),
+      '#open' => true
+    ];
+    $form['user_roles']['default']['roles'] = [
       '#type' => 'checkboxes',
-      '#title' => $this->t('Assigned Role'),
-      '#description' => $this->t('description'),
+      '#title' => $this->t('Roles'),
       '#options' => $this->getUserRoleOptions(),
-      '#default_value' => $config->get('user_roles.default_assign'),
+      '#default_value' => $config->get('user_roles.default.roles'),
     ];
 
     $form['user_roles']['keep'] = [

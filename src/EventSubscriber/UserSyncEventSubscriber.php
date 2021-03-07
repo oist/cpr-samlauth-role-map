@@ -79,7 +79,7 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
 
     $this->keepRoles($originRoles, $event);
 
-    $this->defaultAssignRoles($event);
+    $this->defaultRoles($event);
   }
 
   protected function setRolesAttribute(SamlauthUserSyncEvent $event, $value): void {
@@ -113,8 +113,8 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
     }
   }
 
-  protected function defaultAssignRoles(SamlauthUserSyncEvent $event) {
-    if ($assigned_role = $this->userSettings->get('user_roles.default_assign')) {
+  protected function defaultRoles(SamlauthUserSyncEvent $event) {
+    if ($assigned_role = $this->userSettings->get('user_roles.default.roles')) {
       foreach (array_keys(array_filter($assigned_role)) as $role_id) {
         $this->account->addRole($role_id);
         $event->markAccountChanged();
