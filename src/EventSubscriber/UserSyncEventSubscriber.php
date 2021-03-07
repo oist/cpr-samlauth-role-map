@@ -103,7 +103,7 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
   }
 
   protected function keepRoles($originRoles, SamlauthUserSyncEvent $event) {
-    if ($kept_roles = $this->userSettings->get('user_roles.keep')) {
+    if ($kept_roles = $this->userSettings->get('user_roles.keep.roles')) {
       foreach ($originRoles as $role_id) {
         if (in_array($role_id, array_keys(array_filter($kept_roles)))) {
           $this->account->addRole($role_id);

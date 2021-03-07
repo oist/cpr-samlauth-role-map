@@ -90,12 +90,18 @@ class SamlAuthUserSettingsForm extends ConfigFormBase {
     ];
 
     $form['user_roles']['keep'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Which ROLES should be kept after logging in with SAML?'),
+      '#type' => 'details',
+      '#title' => $this->t('Persistant roles'),
       '#description' => $this->t('Roles that should be remain assigned to
         the user that login with SAMLAuth even if those roles are not in the SAML response.'),
+      '#open' => true
+    ];
+
+    $form['user_roles']['keep']['roles'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Which ROLES should be kept after logging in with SAML?'),
       '#options' => $this->getUserRoleOptions(),
-      '#default_value' => $config->get('user_roles.keep'),
+      '#default_value' => $config->get('user_roles.keep.roles'),
     ];
 
     $form['account'] = [
