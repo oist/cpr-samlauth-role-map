@@ -13,8 +13,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Contains the samlauth user mapping form.
  */
-class SamlAuthUserMappingForm extends ConfigFormBase
-{
+class SamlAuthUserMappingForm extends ConfigFormBase {
+
   /**
    * User settings.
    *
@@ -44,8 +44,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @param EntityFieldManagerInterface $entity_field_manager
    *   An entity field manager.
    */
-  public function __construct(ConfigFactoryInterface $config, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager)
-  {
+  public function __construct(ConfigFactoryInterface $config, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager) {
     $this->userSettings = $config->get('samlauth.user.settings');
     $this->entityTypeManager = $entity_type_manager;
     $this->entityFieldManager = $entity_field_manager;
@@ -54,8 +53,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container)
-  {
+  public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
       $container->get('entity_type.manager'),
@@ -66,16 +64,14 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   /**
    * {@inheritdoc}
    */
-  public function getFormId()
-  {
+  public function getFormId() {
     return 'samlauth_user_mapping';
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function getEditableConfigNames()
-  {
+  protected function getEditableConfigNames() {
     return [
       'samlauth.user.mapping',
     ];
@@ -126,15 +122,19 @@ class SamlAuthUserMappingForm extends ConfigFormBase
     $form['user_roles'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('User Role'),
-      '#prefix' => '<div id="group-wrapper">',
+      '#prefix' => '<div id="mapper-wrapper">',
       '#suffix' => '</div>',
     ];
 
-    if (empty($form_state->get('mapper'))) {
-      $form_state->set('mapper', count($config->get('mapper.group')));
+    if (!is_array($form_state->get('mappers')) && is_null($form_state->get('mappers'))) {
+      $form_state->set('mappers', $config->get('mapper'));
     }
 
-    $mapperCount = $form_state->get('mapper');
+    $mapper = $form_state->get('mappers');
+
+    if (is_null($form_state->get('mapperCount'))) {
+      $form_state->set('mapperCount', count($config->get('mapper')));
+    }
 
     $form['user_roles']['btn_groups'] = [
       '#type' => 'container',
@@ -147,43 +147,39 @@ class SamlAuthUserMappingForm extends ConfigFormBase
       '#submit' => ['::addMap'],
       '#ajax' => [
         'callback' => '::handleMapperCallback',
-        'wrapper' => 'group-wrapper',
+        'wrapper' => 'mapper-wrapper',
       ],
     ];
 
-    if ($mapperCount > 0) {
-      $form['user_roles']['btn_groups']['remove'] = [
-        '#type' => 'submit',
-        '#value' => $this->t('Remove'),
-        '#submit' => ['::removeMap'],
-        '#ajax' => [
-          'callback' => '::handleMapperCallback',
-          'wrapper' => 'group-wrapper',
-        ],
-      ];
-    }
     $form['user_roles']['mapper'] = [
       '#tree' => TRUE,
     ];
 
-    for ($key = 0; $key < $mapperCount; $key++) {
-      $form['user_roles']['mapper']['group'][$key] = [
+    for ($key = 0; $key < $form_state->get('mapperCount'); $key++) {
+      $form['user_roles']['mapper'][$key] = [
         '#type' => 'details',
-        '#title' => $this->t($config->get("mapper.group.$key.name") ?? 'New Mapping'),
-        '#description' => $this->t('description'),
+        '#title' => $this->t($mapper[$key]['name'] ?? 'New Mapping'),
         '#open' => TRUE,
       ];
-
-      $form['user_roles']['mapper']['group'][$key]['name'] = [
+      $form['user_roles']['mapper'][$key]['name'] = [
         '#type' => 'textfield',
         '#title' => $this->t('IDP Attribute Value'),
-        '#default_value' => $config->get("mapper.group.$key.name"),
+        '#default_value' => $mapper[$key]['name'],
       ];
-
-      $form['user_roles']['mapper']['group'][$key]['roles'] = [
+      $form['user_roles']['mapper'][$key]['roles'] = [
         '#type' => 'checkboxes',
         '#options' => $this->getUserRoleOptions(),
-        '#default_value' => $config->get("mapper.group.$key.roles"),
+        '#default_value' => $mapper[$key]['roles'],
+      ];
+      $form['user_roles']['mapper'][$key]['remove'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Remove'),
+        '#name' => 'remove_' . $key,
+        '#submit' => ['::removeMap'],
+        '#ajax' => [
+          'callback' => '::handleMapperCallback',
+          'wrapper' => 'mapper-wrapper',
+        ],
       ];
     }
 
@@ -195,14 +191,19 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   }
 
   public function addMap(array &$form, FormStateInterface $form_state) {
-    $mapper = $form_state->get('mapper');
-    $form_state->set('mapper', $mapper + 1);
+    $counter = $form_state->get('mapperCount');
+    $form_state->set('mapperCount', $counter + 1);
     $form_state->setRebuild();
   }
 
   public function removeMap(array &$form, FormStateInterface $form_state) {
-    $mapper = $form_state->get('mapper');
-    $form_state->set('mapper', $mapper - 1);
+
+    $name = $form_state->getTriggeringElement()['#name'];
+    $key = explode("_", $name)[1];
+    $mapper = $form_state->get('mappers');
+    unset($mapper[$key]);
+    $form_state->set('mappers', array_values($mapper));
+    $form_state->set('mapperCount', count($mapper));
     $form_state->setRebuild();
   }
 
@@ -213,8 +214,8 @@ class SamlAuthUserMappingForm extends ConfigFormBase
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $formSettings = $form_state->cleanValues()->getValues();
 
-    $formSettings['mapper']['group'] = array_values(
-      array_filter($formSettings['mapper']['group'], function ($group) {
+    $formSettings['mapper'] = array_values(
+      array_filter($formSettings['mapper'], function ($group) {
         return !empty($group['name']);
       })
     );
@@ -232,8 +233,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @return array
    *   An array of user roles.
    */
-  protected function getUserRoleOptions()
-  {
+  protected function getUserRoleOptions() {
     $options = [];
 
     foreach ($this->entityTypeManager->getStorage('user_role')
@@ -257,8 +257,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @return array
    *   An array of user fields that allow inputed data.
    */
-  protected function getUserEntityInputFields()
-  {
+  protected function getUserEntityInputFields() {
     $input_fields = [];
 
     foreach ($this->getUserEntityFields() as $field_name => $definition) {
@@ -280,8 +279,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @return array
    *   An array of user mapping attribute options.
    */
-  protected function getAttributeOptions()
-  {
+  protected function getAttributeOptions() {
     $attributes = $this->getUserAttributes();
 
     if (empty($attributes)) {
@@ -297,8 +295,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @return array
    *   An array of user mapping attributes.
    */
-  protected function getUserAttributes()
-  {
+  protected function getUserAttributes() {
     return array_map('trim', explode("\r\n", $this->userSettings->get('user_mapping.attributes')));
   }
 
@@ -308,8 +305,7 @@ class SamlAuthUserMappingForm extends ConfigFormBase
    * @return array
    *   An array of user field definitions.
    */
-  protected function getUserEntityFields()
-  {
+  protected function getUserEntityFields() {
     return $this->entityFieldManager->getFieldDefinitions('user', 'user');
   }
 

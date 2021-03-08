@@ -83,7 +83,7 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
   }
 
   protected function setRolesAttribute(SamlauthUserSyncEvent $event, $value): void {
-    if (!$mappers = $this->userMapping->get('mapper.group')) {
+    if (!$mappers = $this->userMapping->get('mapper')) {
       return;
     }
 
@@ -91,13 +91,11 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
       return $mapper['name'] == $value;
     });
 
-    $item = array_pop($mapper);
+    $mapper = reset($mapper);
 
-    if ($item) {
-      $this->account->set('roles', array_keys(array_filter($item['roles'])));
-    } else {
-      $this->account->set('roles', '');
-    }
+    $roles = $mapper ? array_keys(array_filter($mapper['roles'])) : '';
+
+    $this->account->set('roles', $roles);
 
     $event->markAccountChanged();
   }
