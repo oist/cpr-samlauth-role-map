@@ -151,6 +151,16 @@ class SamlAuthUserMappingForm extends ConfigFormBase {
       ],
     ];
 
+    $form['user_roles']['btn_groups']['remove'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Remove'),
+      '#submit' => ['::removeMap'],
+      '#ajax' => [
+        'callback' => '::handleMapperCallback',
+        'wrapper' => 'mapper-wrapper',
+      ],
+    ];
+
     $form['user_roles']['mapper'] = [
       '#tree' => TRUE,
     ];
@@ -171,16 +181,6 @@ class SamlAuthUserMappingForm extends ConfigFormBase {
         '#options' => $this->getUserRoleOptions(),
         '#default_value' => $mapper[$key]['roles'],
       ];
-      $form['user_roles']['mapper'][$key]['remove'] = [
-        '#type' => 'submit',
-        '#value' => $this->t('Remove'),
-        '#name' => 'remove_' . $key,
-        '#submit' => ['::removeMap'],
-        '#ajax' => [
-          'callback' => '::handleMapperCallback',
-          'wrapper' => 'mapper-wrapper',
-        ],
-      ];
     }
 
     return parent::buildForm($form, $form_state);
@@ -197,13 +197,8 @@ class SamlAuthUserMappingForm extends ConfigFormBase {
   }
 
   public function removeMap(array &$form, FormStateInterface $form_state) {
-
-    $name = $form_state->getTriggeringElement()['#name'];
-    $key = explode("_", $name)[1];
-    $mapper = $form_state->get('mappers');
-    unset($mapper[$key]);
-    $form_state->set('mappers', array_values($mapper));
-    $form_state->set('mapperCount', count($mapper));
+    $counter = $form_state->get('mapperCount');
+    $form_state->set('mapperCount', $counter - 1);
     $form_state->setRebuild();
   }
 
