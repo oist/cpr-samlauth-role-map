@@ -5,10 +5,11 @@ namespace Drupal\samlauth_custom_attributes\EventSubscriber;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\samlauth\Event\SamlauthEvents;
 use Drupal\samlauth\Event\SamlauthUserSyncEvent;
-use Drupal\samlauth\EventSubscriber\UserSyncEventSubscriber as SamlauthUserSyncEventSubscriber;
 use Egulias\EmailValidator\EmailValidator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Event subscriber that synchronizes user properties on a user_sync event.
@@ -19,7 +20,7 @@ use Psr\Log\LoggerInterface;
  * account with the same name is found, or continue with a non-renamed account?
  * etc.)
  */
-class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
+class UserSyncEventSubscriber implements EventSubscriberInterface {
 
   /**
    * A configuration object containing samlauth mapping settings.
@@ -47,11 +48,14 @@ class UserSyncEventSubscriber extends SamlauthUserSyncEventSubscriber {
    * @param EmailValidator $email_validator
    * @param LoggerInterface $logger
    */
-  public function __construct(ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager, TypedDataManagerInterface $typed_data_manager, EmailValidator $email_validator, LoggerInterface $logger) {
-    parent::__construct($config_factory, $entity_type_manager, $typed_data_manager, $email_validator, $logger);
-
+  public function __construct(ConfigFactoryInterface $config_factory) {
     $this->userSettings = $config_factory->get('samlauth.user.settings');
     $this->userMapping = $config_factory->get('samlauth.user.mapping');
+  }
+
+  public static function getSubscribedEvents() {
+    $events[SamlauthEvents::USER_SYNC][] = ['onUserSync'];
+    return $events;
   }
 
   public function onUserSync(SamlauthUserSyncEvent $event) {
