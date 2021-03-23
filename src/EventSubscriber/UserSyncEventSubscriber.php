@@ -3,12 +3,8 @@
 namespace Drupal\samlauth_custom_attributes\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\samlauth\Event\SamlauthEvents;
 use Drupal\samlauth\Event\SamlauthUserSyncEvent;
-use Egulias\EmailValidator\EmailValidator;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -43,10 +39,6 @@ class UserSyncEventSubscriber implements EventSubscriberInterface {
    * UserSyncEventSubscriber constructor.
    *
    * @param ConfigFactoryInterface $config_factory
-   * @param EntityTypeManagerInterface $entity_type_manager
-   * @param TypedDataManagerInterface $typed_data_manager
-   * @param EmailValidator $email_validator
-   * @param LoggerInterface $logger
    */
   public function __construct(ConfigFactoryInterface $config_factory) {
     $this->userSettings = $config_factory->get('samlauth.user.settings');
