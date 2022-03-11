@@ -59,7 +59,7 @@ class UserSyncEventSubscriber implements EventSubscriberInterface {
       $attributes = $event->getAttributes();
       foreach ($user_mappings as $field_name => $mapping) {
         $method = "set" . ucfirst($field_name) . 'Attribute';
-        if (!empty($mapping['attribute'])) {
+        if (!empty($mapping['attribute']) && isset($attributes[$mapping['attribute']])) {
           if ($value = $attributes[$mapping['attribute']]) {
             if (method_exists($this, $method)) {
               $this->$method($event, $value[0]);
